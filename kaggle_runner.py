@@ -23,19 +23,18 @@ DEST_ACCOUNT = {
     "key": "c2767798395ca8c007e931d6f9d42752"
 }
 
-# List of notebooks to execute (add more as needed)
+# List of notebooks to execute
 NOTEBOOKS = [
     {
-        "source_slug": "shreevathsbbhh/new-19",  # Full slug from source account
-        "notebook_name": "new-19",                 # Notebook filename
-        "dest_slug": "distinct4exist/new-19"       # Destination slug (will be created)
+        "source_slug": "shreevathsbbhh/new-19-1",
+        "notebook_name": "new-19-1",
+        "dest_slug": "distinct4exist/new-19-1"
+    },
+    {
+        "source_slug": "shreevathsbbhh/new-19-2",
+        "notebook_name": "new-19-2",
+        "dest_slug": "distinct4exist/new-19-2"
     }
-    # Add more notebooks here:
-    # {
-    #     "source_slug": "shreevathsbbhh/another-notebook",
-    #     "notebook_name": "another-notebook",
-    #     "dest_slug": "distinct4exist/another-notebook"
-    # },
 ]
 
 RUN_INTERVAL_MINUTES = 5
@@ -84,13 +83,13 @@ class CrossAccountKaggleRunner:
         self.execution_count = 0
         self.success_count = 0
         self.failure_count = 0
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(datetime.UTC)
         self.last_execution_time = None
         self.notebook_stats = {nb['notebook_name']: {'success': 0, 'failed': 0} for nb in NOTEBOOKS}
     
     def log(self, message, symbol="ℹ️"):
         """Formatted logging with timestamp"""
-        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')
         print(f"[{timestamp}] {symbol} {message}")
         sys.stdout.flush()
     
@@ -129,7 +128,7 @@ class CrossAccountKaggleRunner:
             )
             
             if result.stdout and result.stdout.strip():
-                for line in result.stdout.strip().split('\n')[:10]:  # Limit output lines
+                for line in result.stdout.strip().split('\n')[:10]:
                     if line.strip():
                         print(f"    │ {line}")
                 sys.stdout.flush()
@@ -188,11 +187,8 @@ class CrossAccountKaggleRunner:
             with open(metadata_file, 'r') as f:
                 metadata = json.load(f)
             
-            # Update username to destination account
             metadata['id'] = notebook_config['dest_slug']
             metadata['slug'] = notebook_config['notebook_name']
-            
-            # Ensure it's set to run (not just save)
             metadata['enable_gpu'] = metadata.get('enable_gpu', False)
             metadata['enable_internet'] = metadata.get('enable_internet', True)
             
@@ -201,7 +197,6 @@ class CrossAccountKaggleRunner:
             
             self.log("Metadata updated for destination account", "📝")
         else:
-            # Create minimal metadata if it doesn't exist
             metadata = {
                 "id": notebook_config['dest_slug'],
                 "slug": notebook_config['notebook_name'],
@@ -221,7 +216,6 @@ class CrossAccountKaggleRunner:
         original_dir = os.getcwd()
         
         try:
-            # Switch to destination account
             self.setup_kaggle_credentials(DEST_ACCOUNT)
             
             os.chdir(notebook_dir)
@@ -239,7 +233,6 @@ class CrossAccountKaggleRunner:
         self.log("Waiting 15 seconds for Kaggle to process...", "⏳")
         time.sleep(15)
         
-        # Switch to destination account to check status
         self.setup_kaggle_credentials(DEST_ACCOUNT)
         
         cmd = f"kaggle kernels status {notebook_config['dest_slug']}"
@@ -257,19 +250,15 @@ class CrossAccountKaggleRunner:
         print()
         
         try:
-            # Step 1: Pull from source account
             notebook_dir = self.pull_notebook_from_source(notebook_config)
             if not notebook_dir:
                 raise Exception("Failed to pull notebook from source")
             
-            # Step 2: Update metadata for destination account
             self.update_metadata_for_dest_account(notebook_dir, notebook_config)
             
-            # Step 3: Push to destination account
             if not self.push_to_dest_account(notebook_dir, notebook_config):
                 raise Exception("Failed to push notebook to destination")
             
-            # Step 4: Verify execution
             self.verify_execution(notebook_config)
             
             self.log(f"✅ {notebook_config['notebook_name']} executed successfully", "✅")
@@ -293,13 +282,13 @@ class CrossAccountKaggleRunner:
     def execute_all_notebooks(self):
         """Execute all configured notebooks"""
         self.execution_count += 1
-        self.last_execution_time = datetime.utcnow()
+        self.last_execution_time = datetime.now(datetime.UTC)
         
         print("\n")
         self.print_separator("═")
         print(f"{'CROSS-ACCOUNT KAGGLE EXECUTION':^70}")
         print(f"{'Execution Round #' + str(self.execution_count):^70}")
-        print(f"{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'):^70}")
+        print(f"{datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S UTC'):^70}")
         self.print_separator("═")
         print(f"  📊 Total Notebooks: {len(NOTEBOOKS)}")
         print(f"  🔀 Source: {SOURCE_ACCOUNT['username']}")
@@ -339,7 +328,7 @@ class CrossAccountKaggleRunner:
     
     def get_runtime_stats(self):
         """Get runtime statistics"""
-        uptime = datetime.utcnow() - self.start_time
+        uptime = datetime.now(datetime.UTC) - self.start_time
         hours, remainder = divmod(uptime.total_seconds(), 3600)
         minutes, seconds = divmod(remainder, 60)
         
@@ -347,7 +336,7 @@ class CrossAccountKaggleRunner:
         
         if self.last_execution_time:
             next_exec = self.last_execution_time + timedelta(minutes=RUN_INTERVAL_MINUTES)
-            time_until_next = next_exec - datetime.utcnow()
+            time_until_next = next_exec - datetime.now(datetime.UTC)
             if time_until_next.total_seconds() > 0:
                 mins, secs = divmod(time_until_next.total_seconds(), 60)
                 next_run_str = f"{int(mins)}m {int(secs)}s"
@@ -407,7 +396,7 @@ def main():
         print(f"  📚 Notebooks: {len(NOTEBOOKS)}")
         print(f"  🔀 Source Account: {SOURCE_ACCOUNT['username']}")
         print(f"  🎯 Destination Account: {DEST_ACCOUNT['username']}")
-        print(f"  🕐 Started: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        print(f"  🕐 Started: {datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')} UTC")
         print()
         print("  Configured Notebooks:")
         for i, nb in enumerate(NOTEBOOKS, 1):
