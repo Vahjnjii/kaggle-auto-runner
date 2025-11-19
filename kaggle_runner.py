@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import shutil
 import time
@@ -83,13 +83,13 @@ class CrossAccountKaggleRunner:
         self.execution_count = 0
         self.success_count = 0
         self.failure_count = 0
-        self.start_time = datetime.now(datetime.UTC)
+        self.start_time = datetime.now(timezone.utc)
         self.last_execution_time = None
         self.notebook_stats = {nb['notebook_name']: {'success': 0, 'failed': 0} for nb in NOTEBOOKS}
     
     def log(self, message, symbol="ℹ️"):
         """Formatted logging with timestamp"""
-        timestamp = datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         print(f"[{timestamp}] {symbol} {message}")
         sys.stdout.flush()
     
@@ -282,13 +282,13 @@ class CrossAccountKaggleRunner:
     def execute_all_notebooks(self):
         """Execute all configured notebooks"""
         self.execution_count += 1
-        self.last_execution_time = datetime.now(datetime.UTC)
+        self.last_execution_time = datetime.now(timezone.utc)
         
         print("\n")
         self.print_separator("═")
         print(f"{'CROSS-ACCOUNT KAGGLE EXECUTION':^70}")
         print(f"{'Execution Round #' + str(self.execution_count):^70}")
-        print(f"{datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S UTC'):^70}")
+        print(f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'):^70}")
         self.print_separator("═")
         print(f"  📊 Total Notebooks: {len(NOTEBOOKS)}")
         print(f"  🔀 Source: {SOURCE_ACCOUNT['username']}")
@@ -328,7 +328,7 @@ class CrossAccountKaggleRunner:
     
     def get_runtime_stats(self):
         """Get runtime statistics"""
-        uptime = datetime.now(datetime.UTC) - self.start_time
+        uptime = datetime.now(timezone.utc) - self.start_time
         hours, remainder = divmod(uptime.total_seconds(), 3600)
         minutes, seconds = divmod(remainder, 60)
         
@@ -336,7 +336,7 @@ class CrossAccountKaggleRunner:
         
         if self.last_execution_time:
             next_exec = self.last_execution_time + timedelta(minutes=RUN_INTERVAL_MINUTES)
-            time_until_next = next_exec - datetime.now(datetime.UTC)
+            time_until_next = next_exec - datetime.now(timezone.utc)
             if time_until_next.total_seconds() > 0:
                 mins, secs = divmod(time_until_next.total_seconds(), 60)
                 next_run_str = f"{int(mins)}m {int(secs)}s"
@@ -396,7 +396,7 @@ def main():
         print(f"  📚 Notebooks: {len(NOTEBOOKS)}")
         print(f"  🔀 Source Account: {SOURCE_ACCOUNT['username']}")
         print(f"  🎯 Destination Account: {DEST_ACCOUNT['username']}")
-        print(f"  🕐 Started: {datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        print(f"  🕐 Started: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
         print()
         print("  Configured Notebooks:")
         for i, nb in enumerate(NOTEBOOKS, 1):
