@@ -180,26 +180,34 @@ class CrossAccountKaggleRunner:
         return notebook_dir
     
     def update_metadata_for_dest_account(self, notebook_dir, notebook_config):
-        """Update kernel metadata for destination account"""
+        """Update kernel metadata for destination account with unique title"""
         metadata_file = notebook_dir / "kernel-metadata.json"
+        
+        # Create unique title with timestamp to avoid 409 conflicts
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
+        unique_title = f"{notebook_config['notebook_name']}-{timestamp}"
         
         if metadata_file.exists():
             with open(metadata_file, 'r') as f:
                 metadata = json.load(f)
             
+            # Update metadata for destination account
             metadata['id'] = notebook_config['dest_slug']
             metadata['slug'] = notebook_config['notebook_name']
+            metadata['title'] = unique_title  # CRITICAL: Unique title prevents conflicts
             metadata['enable_gpu'] = metadata.get('enable_gpu', False)
             metadata['enable_internet'] = metadata.get('enable_internet', True)
             
             with open(metadata_file, 'w') as f:
                 json.dump(metadata, f, indent=2)
             
-            self.log("Metadata updated for destination account", "📝")
+            self.log(f"Metadata updated with unique title: {unique_title}", "📝")
         else:
+            # Create new metadata if it doesn't exist
             metadata = {
                 "id": notebook_config['dest_slug'],
                 "slug": notebook_config['notebook_name'],
+                "title": unique_title,  # CRITICAL: Unique title prevents conflicts
                 "kernel_type": "notebook",
                 "language": "python",
                 "enable_gpu": False,
@@ -209,7 +217,7 @@ class CrossAccountKaggleRunner:
             with open(metadata_file, 'w') as f:
                 json.dump(metadata, f, indent=2)
             
-            self.log("Created new metadata for destination account", "📝")
+            self.log(f"Created new metadata with unique title: {unique_title}", "📝")
     
     def push_to_dest_account(self, notebook_dir, notebook_config):
         """Push notebook to destination account to trigger execution"""
@@ -390,13 +398,14 @@ def main():
     try:
         print("\n🚀" * 35)
         print(f"{'CROSS-ACCOUNT KAGGLE NOTEBOOK RUNNER':^70}")
-        print(f"{'GitHub Deployment Version':^70}")
+        print(f"{'GitHub Deployment Version - FIXED':^70}")
         print("🚀" * 35)
         print(f"\n  ⏰ Schedule: Every {RUN_INTERVAL_MINUTES} minutes")
         print(f"  📚 Notebooks: {len(NOTEBOOKS)}")
         print(f"  🔀 Source Account: {SOURCE_ACCOUNT['username']}")
         print(f"  🎯 Destination Account: {DEST_ACCOUNT['username']}")
         print(f"  🕐 Started: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        print(f"  ✅ Fix Applied: Unique timestamp-based titles (no more 409 errors)")
         print()
         print("  Configured Notebooks:")
         for i, nb in enumerate(NOTEBOOKS, 1):
